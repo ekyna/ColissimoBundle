@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ekyna\Bundle\ColissimoBundle\Platform;
 
 use Ekyna\Component\Commerce\Exception\InvalidArgumentException;
@@ -9,18 +11,18 @@ use Ekyna\Component\Commerce\Exception\InvalidArgumentException;
  * @package Ekyna\Bundle\ColissimoBundle
  * @author  Etienne Dauvergne <contact@ekyna.com>
  */
-abstract class Service
+final class Service
 {
-    const HOME_UNSIGNED = 'HomeUnsigned';
-    const HOME_SIGNED   = 'HomeSigned';
-    const RELAY         = 'Relay';
-    const RETURN        = 'Return';
+    public const HOME_UNSIGNED = 'HomeUnsigned';
+    public const HOME_SIGNED   = 'HomeSigned';
+    public const RELAY         = 'Relay';
+    public const RETURN        = 'Return';
 
     // TODO (see colissimo_ws_affranchissement.pdf page 43)
-    //const NEXT_DAY       = 'NextDay';
-    //const OM_ECO       = 'OmEco';
-    //const OM_RETURN       = 'OmReturn';
-    //const EXPERT       = 'Expert';
+    //public const NEXT_DAY       = 'NextDay';
+    //public const OM_ECO       = 'OmEco';
+    //public const OM_RETURN       = 'OmReturn';
+    //public const EXPERT       = 'Expert';
 
 
     /**
@@ -28,32 +30,27 @@ abstract class Service
      *
      * @return array|string[]
      */
-    static public function getCodes()
+    public static function getCodes(): array
     {
         return [
-            static::HOME_UNSIGNED,
-            static::HOME_SIGNED,
-            static::RELAY,
-            static::RETURN,
+            self::HOME_UNSIGNED,
+            self::HOME_SIGNED,
+            self::RELAY,
+            self::RETURN,
         ];
     }
 
     /**
-     * Returns whether or not the given code is valid.
-     *
-     * @param string $code
-     * @param bool   $throw
-     *
-     * @return bool
+     * Returns whether the given code is valid.
      */
-    static public function isValid($code, $throw = true)
+    public static function isValid(string $code, bool $throw = true): bool
     {
-        if (in_array($code, static::getCodes())) {
+        if (in_array($code, self::getCodes())) {
             return true;
         }
 
         if ($throw) {
-            throw new InvalidArgumentException("Unexpected Colissmo service code.");
+            throw new InvalidArgumentException('Unexpected Colissmo service code.');
         }
 
         return false;
@@ -66,18 +63,18 @@ abstract class Service
      *
      * @return string
      */
-    static public function getLabel($code)
+    public static function getLabel(string $code): string
     {
-        static::isValid($code);
+        self::isValid($code);
 
         switch ($code) {
-            case static::HOME_UNSIGNED:
+            case self::HOME_UNSIGNED:
                 return 'Colissimo Domicile sans signature';
-            case static::HOME_SIGNED:
+            case self::HOME_SIGNED:
                 return 'Colissimo Domicile avec signature';
-            case static::RELAY:
+            case self::RELAY:
                 return 'Colissimo Point retrait';
-            case static::RETURN:
+            case self::RETURN:
                 return 'Colissimo Retour';
             default:
                 return 'Colissimo Domicile';
@@ -89,12 +86,12 @@ abstract class Service
      *
      * @return array
      */
-    static public function getChoices()
+    public static function getChoices(): array
     {
         $choices = [];
 
-        foreach (static::getCodes() as $code) {
-            $choices[static::getLabel($code)] = $code;
+        foreach (self::getCodes() as $code) {
+            $choices[self::getLabel($code)] = $code;
         }
 
         return $choices;

@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ekyna\Bundle\ColissimoBundle\Platform\Gateway;
 
+use DateTime;
 use Ekyna\Component\Colissimo;
 use Ekyna\Component\Commerce\Shipment\Model as Shipment;
 
@@ -15,16 +18,14 @@ class ReturnGateway extends AbstractGateway
     /**
      * @inheritDoc
      */
-    public function getCapabilities()
+    public function getCapabilities(): int
     {
         return static::CAPABILITY_RETURN;
     }
 
-    /**
-     * @inheritDoc
-     */
-    protected function createLabelRequest(Shipment\ShipmentInterface $shipment)
-    {
+    protected function createLabelRequest(
+        Shipment\ShipmentInterface $shipment
+    ): Colissimo\Postage\Request\GenerateLabelRequest {
         // TODO Use API getProductInter method for international
         // TODO Use API planPickup method
 
@@ -51,13 +52,13 @@ class ReturnGateway extends AbstractGateway
         if (0 >= $weight = $shipment->getWeight()) {
             $weight = $this->weightCalculator->calculateShipment($shipment);
         }
-        $request->letter->parcel->weight = round($weight, 2); // kg
+        $request->letter->parcel->weight = $weight->toFixed(3); // kg
         // TODO  $request->letter->parcel->insuranceValue;
         // TODO $request->letter->parcel->nonMachinable;
 
         // Service
         $request->letter->service->productCode = $this->getProductCode($shipment);
-        $request->letter->service->depositDate = new \DateTime('+1 day');
+        $request->letter->service->depositDate = new DateTime('+1 day');
         // TODO Use getListMailBoxPickingDates API methods (need configuration form field)
         // TODO $request->letter->service->mailBoxPickingDate = 1;
         // TODO $request->letter->service->mailBoxPicking = new \DateTime('+1 day');
@@ -69,10 +70,7 @@ class ReturnGateway extends AbstractGateway
         return $request;
     }
 
-    /**
-     * @inheritDoc
-     */
-    protected function getProductCode(Shipment\ShipmentInterface $shipment)
+    protected function getProductCode(Shipment\ShipmentInterface $shipment): string
     {
         // TODO Si Outre-Mer :
         // return Colissimo\Postage\Enum\ProductCode::CORI // Colissimo Retour OM
@@ -81,10 +79,7 @@ class ReturnGateway extends AbstractGateway
         return Colissimo\Postage\Enum\ProductCode::CORE;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function supportShipment(Shipment\ShipmentDataInterface $shipment, $throw = true)
+    public function supportShipment(Shipment\ShipmentDataInterface $shipment, bool $throw = true): bool
     {
         // TODO Only France / Outre mer
 

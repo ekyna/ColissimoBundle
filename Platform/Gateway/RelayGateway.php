@@ -1,12 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ekyna\Bundle\ColissimoBundle\Platform\Gateway;
 
+use DateTime;
+use Decimal\Decimal;
 use Ekyna\Bundle\ColissimoBundle\Platform\ColissimoPlatform;
 use Ekyna\Component\Colissimo;
 use Ekyna\Component\Commerce\Exception\RuntimeException;
 use Ekyna\Component\Commerce\Exception\ShipmentGatewayException;
 use Ekyna\Component\Commerce\Shipment;
+use Exception;
 
 /**
  * Class RelayGateway
@@ -15,37 +20,30 @@ use Ekyna\Component\Commerce\Shipment;
  */
 class RelayGateway extends AbstractGateway
 {
-    /**
-     * @inheritDoc
-     */
-    public function getCapabilities()
+    public function getCapabilities(): int
     {
         return static::CAPABILITY_SHIPMENT | static::CAPABILITY_RELAY;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getRequirements()
+    public function getRequirements(): int
     {
         return static::REQUIREMENT_MOBILE;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function listRelayPoints(Shipment\Gateway\Model\Address $address, float $weight)
-    {
+    public function listRelayPoints(
+        Shipment\Gateway\Model\Address $address,
+        Decimal                        $weight
+    ): Shipment\Gateway\Model\ListRelayPointResponse {
         $request = new Colissimo\Withdrawal\Request\FindPointsRequest();
 
         // Required
         $hash = $request->zipCode = $address->getPostalCode();
         $hash .= $request->city = $address->getCity();
         $hash .= $request->countryCode = 'FR';
-        $request->shippingDate = new \DateTime('+1 day'); // TODO regarding to stock availability
+        $request->shippingDate = new DateTime('+1 day'); // TODO regarding to stock availability
         $hash .= $request->shippingDate->format('Y-m-d');
 
-            // Optional
+        // Optional
         $hash .= $request->address = $address->getStreet();
         //$request->weight = 1000; // 1kg
         //$request->filterRelay = true;
@@ -59,11 +57,11 @@ class RelayGateway extends AbstractGateway
             if (!$response->isSuccess()) {
                 $messages = $response->getMessages();
                 if ($message = reset($messages)) {
-                    throw new \Exception($message->getContent());
+                    throw new Exception($message->getContent());
                 }
-                throw new \Exception("Colissimo API call failed.");
+                throw new Exception('Colissimo API call failed.');
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw new ShipmentGatewayException($e->getMessage(), $e->getCode(), $e);
         }
 
@@ -76,16 +74,13 @@ class RelayGateway extends AbstractGateway
         return $return;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getRelayPoint(string $number)
+    public function getRelayPoint(string $number): Shipment\Gateway\Model\GetRelayPointResponse
     {
         $request = new Colissimo\Withdrawal\Request\FindPointRequest();
 
         // Required
         $request->id = $number;
-        $request->date = new \DateTime('+1 day'); // TODO regarding to stock availability
+        $request->date = new DateTime('+1 day'); // TODO regarding to stock availability
 
         // Optional
         //$request->weight = 1000; // 1kg
@@ -97,9 +92,9 @@ class RelayGateway extends AbstractGateway
             $response = $this->getApi()->findPoint($request);
 
             if (!$response->isSuccess()) {
-                throw new \Exception("Colissimo API call failed.");
+                throw new Exception('Colissimo API call failed.');
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw new ShipmentGatewayException($e->getMessage(), $e->getCode(), $e);
         }
 
@@ -112,13 +107,10 @@ class RelayGateway extends AbstractGateway
 
     /**
      * Transforms a dpd relay point item to a commerce one.
-     *
-     * @param Colissimo\Withdrawal\Model\PointRetraitAcheminement $point
-     *
-     * @return Shipment\Entity\RelayPoint
      */
-    protected function transformPointToRelay($point)
-    {
+    protected function transformPointToRelay(
+        Colissimo\Withdrawal\Model\PointRetraitAcheminement $point
+    ): Shipment\Entity\RelayPoint {
         $country = $this->addressResolver->getCountryRepository()->findOneByCode('FR');
 
         $result = new Shipment\Entity\RelayPoint();
@@ -153,7 +145,7 @@ class RelayGateway extends AbstractGateway
             7 => 'Dimanche',
         ];
 
-        foreach ($days as $number  => $string) {
+        foreach ($days as $number => $string) {
             if (!isset($point->{'horairesOuverture' . $string})) {
                 continue;
             }
@@ -163,7 +155,7 @@ class RelayGateway extends AbstractGateway
 
             $ranges = explode(' ', $point->{'horairesOuverture' . $string});
             foreach ($ranges as $range) {
-                list($from, $to) = explode('-', $range);
+                [$from, $to] = explode('-', $range);
 
                 if ($from != '000:00' && $to != '00:00') {
                     $opening->addRanges($from, $to);
@@ -178,15 +170,12 @@ class RelayGateway extends AbstractGateway
 
     /**
      * Creates the generate label request.
-     *
-     * @param Shipment\Model\ShipmentInterface $shipment
-     *
-     * @return Colissimo\Postage\Request\GenerateLabelRequest
      */
-    protected function createLabelRequest(Shipment\Model\ShipmentInterface $shipment)
-    {
+    protected function createLabelRequest(
+        Shipment\Model\ShipmentInterface $shipment
+    ): Colissimo\Postage\Request\GenerateLabelRequest {
         if (null === $relayPoint = $shipment->getRelayPoint()) {
-            throw new RuntimeException("Expected shipment with relay point.");
+            throw new RuntimeException('Expected shipment with relay point.');
         }
 
         $request = parent::createLabelRequest($shipment);
@@ -199,10 +188,7 @@ class RelayGateway extends AbstractGateway
         return $request;
     }
 
-    /**
-     * @inheritdoc
-     */
-    protected function getProductCode(Shipment\Model\ShipmentInterface $shipment)
+    protected function getProductCode(Shipment\Model\ShipmentInterface $shipment): string
     {
         $type = $this->getRelayPointType($shipment);
 
@@ -222,24 +208,20 @@ class RelayGateway extends AbstractGateway
             return Colissimo\Postage\Enum\ProductCode::PCS;
         }
 
-        throw new ShipmentGatewayException("Unexpected relay point type.");
+        throw new ShipmentGatewayException('Unexpected relay point type.');
     }
 
     /**
      * Returns the relay point's type.
-     *
-     * @param Shipment\Model\ShipmentInterface $shipment
-     *
-     * @return string
      */
-    private function getRelayPointType(Shipment\Model\ShipmentInterface $shipment)
+    private function getRelayPointType(Shipment\Model\ShipmentInterface $shipment): string
     {
         if (null === $relayPoint = $shipment->getRelayPoint()) {
-            throw new ShipmentGatewayException("Expected shipment with relay point.");
+            throw new ShipmentGatewayException('Expected shipment with relay point.');
         }
 
         if (empty($data = $relayPoint->getPlatformData()) || !isset($data['type'])) {
-            throw new ShipmentGatewayException("Undefined relay point type");
+            throw new ShipmentGatewayException('Undefined relay point type');
         }
 
         return $data['type'];

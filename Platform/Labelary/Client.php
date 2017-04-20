@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ekyna\Bundle\ColissimoBundle\Platform\Labelary;
 
 use Ekyna\Component\Commerce\Exception\InvalidArgumentException;
@@ -12,24 +14,15 @@ use GuzzleHttp\Client as HttpClient;
  */
 class Client
 {
-    const ENDPOINT = 'http://api.labelary.com/v1';
+    public const ENDPOINT = 'https://api.labelary.com/v1';
 
-    const ENUM_DPMM_6  = '6dpmm';
-    const ENUM_DPMM_8  = '8dpmm';
-    const ENUM_DPMM_12 = '12dpmm';
-    const ENUM_DPMM_24 = '24dpmm';
+    public const ENUM_DPMM_6  = '6dpmm';
+    public const ENUM_DPMM_8  = '8dpmm';
+    public const ENUM_DPMM_12 = '12dpmm';
+    public const ENUM_DPMM_24 = '24dpmm';
 
-    /**
-     * @var HttpClient
-     */
-    private $httpClient;
+    private HttpClient $httpClient;
 
-
-    /**
-     * Constructor.
-     *
-     * @param HttpClient $httpClient
-     */
     public function __construct(HttpClient $httpClient = null)
     {
         $this->httpClient = $httpClient ?: new HttpClient();
@@ -45,10 +38,10 @@ class Client
      *
      * @return array ['type' => (string), 'content' => (string)]
      */
-    public function convert(string $zpl, array $options = [])
+    public function convert(string $zpl, array $options = []): array
     {
         if (empty($zpl)) {
-            throw new InvalidArgumentException("Empty ZPL input.");
+            throw new InvalidArgumentException('Empty ZPL input.');
         }
 
         if (!isset($options['dpmm'])) {

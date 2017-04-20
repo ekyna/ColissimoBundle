@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ekyna\Bundle\ColissimoBundle\Platform\Gateway;
 
 use Ekyna\Component\Colissimo;
@@ -12,10 +14,7 @@ use Ekyna\Component\Commerce\Shipment\Model as Shipment;
  */
 class HomeSignedGateway extends AbstractGateway
 {
-    /**
-     * @inheritdoc
-     */
-    protected function getProductCode(Shipment\ShipmentInterface $shipment)
+    protected function getProductCode(Shipment\ShipmentInterface $shipment): string
     {
         // TODO Si Outre-Mer:
         // return Colissimo\Postage\Enum\ProductCode::CDS
