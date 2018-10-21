@@ -169,11 +169,19 @@ abstract class AbstractGateway extends Gateway\AbstractGateway
         try {
             $response = $this->getApi()->generateLabel($request);
 
-            if (!$response->isSuccess()) {
-                throw new \Exception("Colissimo API call failed.");
-            }
         } catch (\Exception $e) {
             throw new ShipmentGatewayException($e->getMessage(), $e->getCode(), $e);
+        }
+
+        if (!$response->isSuccess()) {
+            $message = "Colissimo API call failed";
+
+            /** @var Colissimo\Base\Response\Message $error */
+            if (false !== $error = reset($response->getMessages())) {
+                $message .= sprintf("\n[%s] %s", $error->getId(), $error->getContent());
+            }
+
+            throw new ShipmentGatewayException($message);
         }
 
         $shipment->setTrackingNumber($response->labelV2Response->parcelNumber);
