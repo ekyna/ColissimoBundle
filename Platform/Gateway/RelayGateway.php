@@ -57,6 +57,10 @@ class RelayGateway extends AbstractGateway
             $response = $this->getApi()->findPoints($request);
 
             if (!$response->isSuccess()) {
+                $messages = $response->getMessages();
+                if ($message = reset($messages)) {
+                    throw new \Exception($message->getContent());
+                }
                 throw new \Exception("Colissimo API call failed.");
             }
         } catch (\Exception $e) {
