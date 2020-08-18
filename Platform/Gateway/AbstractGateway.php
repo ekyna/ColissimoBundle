@@ -176,8 +176,9 @@ abstract class AbstractGateway extends Gateway\AbstractGateway
         if (!$response->isSuccess()) {
             $message = "Colissimo API call failed";
 
+            $messages = $response->getMessages();
             /** @var Colissimo\Base\Response\Message $error */
-            if (false !== $error = reset($response->getMessages())) {
+            if (false !== $error = reset($messages)) {
                 $message .= sprintf("\n[%s] %s", $error->getId(), $error->getContent());
             }
 
