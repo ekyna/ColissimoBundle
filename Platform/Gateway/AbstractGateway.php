@@ -206,13 +206,13 @@ abstract class AbstractGateway extends Gateway\AbstractGateway
         $request->outputFormat->outputPrintingType = Colissimo\Postage\Enum\OutputPrintingType::ZPL_10x15_203dpi;
 
         // Sender
-        $shipper = $this->addressResolver->resolveSenderAddress($shipment, true);
-        $request->letter->sender->address = $this->createAddress($shipper);
-        $request->letter->sender->address->email = $this->settingManager->getParameter('general.admin_email');
+        $shipper                                  = $this->addressResolver->resolveSenderAddress($shipment, true);
+        $request->letter->sender->address         = $this->createAddress($shipper);
+        $request->letter->sender->address->email  = $this->settingManager->getParameter('general.admin_email');
         $request->letter->sender->senderParcelRef = $shipment->getSale()->getNumber();
 
         // Receiver
-        $receiver = $this->addressResolver->resolveReceiverAddress($shipment, true);
+        $receiver                            = $this->addressResolver->resolveReceiverAddress($shipment, true);
         $request->letter->addressee->address = $this->createAddress($receiver);
 
         // Parcel
@@ -233,8 +233,8 @@ abstract class AbstractGateway extends Gateway\AbstractGateway
         // TODO $request->letter->parcel->ftd;                  // Franc de taxes et droits (obligatoire pour Outre Mer)
 
         // Service
-        $request->letter->service->productCode = $this->getProductCode($shipment);
-        $request->letter->service->depositDate = new \DateTime('now');
+        $request->letter->service->productCode    = $this->getProductCode($shipment);
+        $request->letter->service->depositDate    = new \DateTime('now');
         $request->letter->service->commercialName = $this->settingManager->getParameter('general.site_name');
         // TODO $request->letter->service->totalAmount
 
@@ -248,7 +248,7 @@ abstract class AbstractGateway extends Gateway\AbstractGateway
      * Builds the customs declarations.
      *
      * @param Colissimo\Postage\Model\CustomsDeclarations $declaration
-     * @param Shipment\ShipmentInterface $shipment
+     * @param Shipment\ShipmentInterface                  $shipment
      *
      * @return float The customs total amount.
      */
@@ -256,7 +256,7 @@ abstract class AbstractGateway extends Gateway\AbstractGateway
         Colissimo\Postage\Model\CustomsDeclarations $declaration,
         Shipment\ShipmentInterface $shipment
     ) {
-        $total = 0;
+        $total    = 0;
         $currency = $shipment->getSale()->getCurrency()->getCode();
 
         $declaration->includeCustomsDeclarations = true;
@@ -267,9 +267,9 @@ abstract class AbstractGateway extends Gateway\AbstractGateway
             $article = new Colissimo\Postage\Model\Article();
 
             $article->description = substr($saleItem->getDesignation(), 0, 64);
-            $article->quantity = $item->getQuantity();
-            $article->weight = $saleItem->getWeight();
-            $article->value = $price = Money::round($saleItem->getNetPrice(), $currency); // TODO VAT
+            $article->quantity    = $item->getQuantity();
+            $article->weight      = $saleItem->getWeight();
+            $article->value       = $price = Money::round($saleItem->getNetPrice(), $currency); // TODO VAT
             // TODO $article->hsCode;
             // TODO $article->originCountry;
             // TODO $article->currency;
@@ -309,21 +309,22 @@ abstract class AbstractGateway extends Gateway\AbstractGateway
     ) {
         foreach ($response->getAttachments() as $attachment) {
             if ($attachment->getType() === 'label') {
-                $type = $shipment->isReturn() ? OrderShipmentLabel::TYPE_RETURN : OrderShipmentLabel::TYPE_SHIPMENT;
+                $type   = $shipment->isReturn() ? OrderShipmentLabel::TYPE_RETURN : OrderShipmentLabel::TYPE_SHIPMENT;
                 $format = OrderShipmentLabel::FORMAT_PNG;
-                $size = OrderShipmentLabel::SIZE_A6;
+                $size   = OrderShipmentLabel::SIZE_A6;
 
                 try {
                     $labelResponse = $this->getLabelary()->convert($attachment->getContent());
                 } catch (\Exception $e) {
-                    throw new ShipmentGatewayException("Failed to create shipment label from ZPL data: " . $e->getMessage());
+                    throw new ShipmentGatewayException("Failed to create shipment label from ZPL data: "
+                        . $e->getMessage());
                 }
                 $content = $labelResponse['content'];
 
             } elseif ($attachment->getType() === 'cn23') {
-                $type = OrderShipmentLabel::TYPE_CUSTOMS;
-                $format = OrderShipmentLabel::FORMAT_PDF;
-                $size = OrderShipmentLabel::SIZE_A4;
+                $type    = OrderShipmentLabel::TYPE_CUSTOMS;
+                $format  = OrderShipmentLabel::FORMAT_PDF;
+                $size    = OrderShipmentLabel::SIZE_A4;
                 $content = $attachment->getContent();
             } else {
                 continue;
@@ -348,7 +349,7 @@ abstract class AbstractGateway extends Gateway\AbstractGateway
             $return->companyName = $data;
         }
 
-        $return->lastName = $address->getLastName();
+        $return->lastName  = $address->getLastName();
         $return->firstName = $address->getFirstName();
 
         if (!empty($data = $address->getSupplement())) {
@@ -363,8 +364,8 @@ abstract class AbstractGateway extends Gateway\AbstractGateway
         }
 
         $return->countryCode = $address->getCountry()->getCode();
-        $return->city = $address->getCity();
-        $return->zipCode = $address->getPostalCode();
+        $return->city        = $address->getCity();
+        $return->zipCode     = $address->getPostalCode();
 
         if (!empty($data = $address->getPhone())) {
             $return->phoneNumber = $this->formatPhoneNumber($data);
@@ -376,14 +377,20 @@ abstract class AbstractGateway extends Gateway\AbstractGateway
         if (!empty($data = $address->getDigicode1())) {
             $return->doorCode1 = $data;
         }
+        if (!empty($data = $address->getIntercom())) {
+            $return->intercom = $data;
+        }
         if (!empty($data = $address->getDigicode2())) {
             $return->doorCode2 = $data;
         }
-        if ($address instanceof SaleAddressInterface && null !== $sale = $address->getSale()) {
+        if ($address instanceof SaleAddressInterface && ($sale = $address->getSale())) {
             $return->email = $sale->getEmail();
-        }
-        if (!empty($data = $address->getIntercom())) {
-            $return->intercom = $data;
+
+            // Use sale first and last name if needed
+            if (empty($return->lastName) || empty($return->firstName)) {
+                $return->lastName  = $address->getLastName();
+                $return->firstName = $address->getFirstName();
+            }
         }
 
         // TODO $return->language
@@ -472,12 +479,12 @@ abstract class AbstractGateway extends Gateway\AbstractGateway
     /**
      * Returns the product code for the given shipment.
      *
-     * @see colissimo_ws_affranchissement.pdf page 37
-     * @see colissimo_ws_livraison.pdf page 34
-     *
      * @param Shipment\ShipmentInterface $shipment
      *
      * @return string
+     * @see colissimo_ws_affranchissement.pdf page 37
+     * @see colissimo_ws_livraison.pdf page 34
+     *
      */
     abstract protected function getProductCode(Shipment\ShipmentInterface $shipment);
 }
