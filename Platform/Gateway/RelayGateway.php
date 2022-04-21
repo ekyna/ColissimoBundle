@@ -8,6 +8,7 @@ use DateTime;
 use Decimal\Decimal;
 use Ekyna\Bundle\ColissimoBundle\Platform\ColissimoPlatform;
 use Ekyna\Component\Colissimo;
+use Ekyna\Component\Commerce\Common\Model\Address;
 use Ekyna\Component\Commerce\Exception\RuntimeException;
 use Ekyna\Component\Commerce\Exception\ShipmentGatewayException;
 use Ekyna\Component\Commerce\Shipment;
@@ -31,8 +32,8 @@ class RelayGateway extends AbstractGateway
     }
 
     public function listRelayPoints(
-        Shipment\Gateway\Model\Address $address,
-        Decimal                        $weight
+        Address $address,
+        Decimal $weight
     ): Shipment\Gateway\Model\ListRelayPointResponse {
         $request = new Colissimo\Withdrawal\Request\FindPointsRequest();
 
